@@ -1,0 +1,141 @@
+<div id='view'>
+
+</div>
+
+
+<link rel='stylesheet' href='datalog.css'>
+
+<style>
+  line { display: block }
+</style>
+
+<script src='lib/meh.js'></script>
+<script src='lib/objectUtils.js'></script>
+<script src='lib/browser.js'></script>
+<script src='lib/customElement.js'></script>
+<script src='lib/editor.js'></script>
+<script src='lib/equals.js'></script>
+<script src='datalog.js'></script>
+<script src='datalogRenderer.js'></script>
+<script>
+  meh.withModulesDo(function (datalog, datalogRenderer) {
+
+    const rule = datalog.makeRule(datalog.makeClause(
+      '@ is father of @',
+      [datalog.makeValue('Abe'), datalog.makeValue('Homer')]
+    ), [])
+
+
+    const claims = []
+
+    for (let i = 0; i < 100; i++) {
+      claims.push(Claim `${'abe'} is father of ${Math.random()}`)
+    }
+
+    const db = new datalog.Database(claims.concat([
+      Claim `${'abe'} has age ${70}`,
+      Claim `${'abe'} is father of ${'homer'}`,
+      Claim `${'homer'} is father of ${'bart'}`,
+
+
+      When `{father} is father of {son}`
+    ]))
+
+
+    //console.log(db);
+
+    const timestamp = Date.now()
+
+    const result = db.eval()
+
+    console.log(Date.now() - timestamp)
+
+
+    //console.log(result)
+
+    //document.getElementById('view').appendChild(datalogRenderer.render(result))
+
+    function Claim (literals, ...args) {
+      const name = literals.raw.join('@').replace(/\s+/g, ' ') // normalize name to make it whitespace insensitive
+      const values = args.map((value) => datalog.makeValue(value))
+      return datalog.makeRule(datalog.makeClause(name, values, []), [])
+    }
+
+    function When (literals, ...args) {
+      try {
+        const whenStatement = literals.join('');
+        const constantValues = args.map((value) => datalog.makeValue(value));
+        const tokens = interleave(literals.raw, constantValues)
+          .flatMap((chunk) => {
+            if (typeof chunk !== 'string') {
+              return [chunk]
+            }
+
+            let normalizedChunk = normalizeWhitespace(chunk);
+            let tokens = [];
+            let insideVariableToken = false;
+            let part = '';
+
+            for (let i = 0; i < normalizedChunk.length; i++) {
+              switch (normalizedChunk[i]) {
+                case '{':
+                  if (insideVariableToken) {
+                    throw new Error(`unexpected character { in When: '${whenStatement}'`)
+                  }
+
+                  insideVariableToken = true;
+                  tokens.push(part);
+                  part = '';
+                  break;
+
+                case '}':
+                  if (!insideVariableToken) {
+                    throw new Error(`unexpected character } in When: '${whenStatement}'`)
+                  }
+
+                  insideVariableToken = false;
+                  tokens.push(datalog.makeVariable(part));
+                  part = '';
+                  break;
+
+                default:
+                  part += normalizedChunk[i]
+                  break;
+              }
+            }
+
+            return tokens;
+          })
+
+        const name = tokens.map((token) => (typeof token === 'string') ? token : '@').join('')
+        const values = tokens.filter((token) => typeof token !== 'string')
+        const variables = tokens.filter((token) => token instanceof datalog.Variable)
+        const condition = datalog.makeClause(name, values)
+
+
+        const clause = datalog.makeClause(`When ${whenStatement} has result: ${variables.map(() => '@').join(' ')}`, variables)
+          //datalog.makeClause(`When ${whenStatement} has result: ${variables.map(() => '@').join(' ')}`, variables)
+          //datalog.makeClause(`When ${whenStatement} has result: ${variables.map(() => '@').join(' ')}`, variables)
+        return datalog.makeRule(clause, [condition])
+
+      } catch (err) {
+        console.log(err)
+        return () => {}
+      }
+    }
+
+    function normalizeWhitespace (str) {
+      return str.replace(/\s+/g, ' ')
+    }
+
+    function interleave (arr1, arr2) {
+      return arr1.flatMap((value, i) => {
+        if (i < arr2.length) {
+          return [value, arr2[i]]
+        }
+        return [value]
+      })
+    }
+
+  })
+</script>
