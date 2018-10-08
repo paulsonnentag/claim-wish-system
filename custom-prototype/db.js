@@ -84,11 +84,10 @@ Db.prototype = {
     const name = claim.name;
     const args = claim.args.slice() // clone args because they will be mutated
 
-    const claims = this._claims[name]
-
+    let claims = this._claims[name]
 
     const equalConstraints = []
-    const constantArgs = []
+    let constantArgs = []
     const varArgs = []
     const matchingClaims = []
 
@@ -135,6 +134,18 @@ Db.prototype = {
     // return all claims without filter if there are no constant arguments and not equalConstraints
     if (constantArgs.length === 0 && equalConstraints.length === 0) {
       return claimsToMatches(claims, varArgs, context)
+    }
+
+    if (constantArgs.length > 0) {
+      // lookup first constant arg
+      let [firstConstantArg, ...restConstantArgs] = constantArgs
+      claims = this._indexes[name][firstConstantArg.index][firstConstantArg.value] || []
+
+      if (restConstantArgs.length === 0 && equalConstraints.length === 0) {
+        return claimsToMatches(claims, varArgs, context)
+      }
+
+      constantArgs = restConstantArgs;
     }
 
     // ... otherwise filter
