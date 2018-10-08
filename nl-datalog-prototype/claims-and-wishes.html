@@ -3,6 +3,30 @@
 </div>
 
 
+{name: "@ is father of @", arg1: "homer", arg2: "bart" }}
+
+
+
+
+
+When {grandfather} is father of {father}, {father} is father of {child}:
+
+
+SELECT statement1, statement2 WHERE
+statement1.name = "@ is father of @"
+statement2.name = "@ is father of @"
+statement1.arg2 = statement2.arg1
+
+
+
+
+
+
+
+
+
+
+
 <link rel='stylesheet' href='datalog.css'>
 
 <style>
@@ -32,14 +56,22 @@
       claims.push(Claim `${'abe'} is father of ${Math.random()}`)
     }
 
+    var
+
     const db = new datalog.Database(claims.concat([
-      Claim `${'abe'} has age ${70}`,
+      Claim `${a} has age ${70}`,
       Claim `${'abe'} is father of ${'homer'}`,
       Claim `${'homer'} is father of ${'bart'}`,
 
 
       When `{father} is father of {son}`
     ]))
+
+
+    Claim `${'homer'} is father of ${'bart'}`,
+
+
+      ['is father of'] ['home', 'bart']
 
 
     //console.log(db);
