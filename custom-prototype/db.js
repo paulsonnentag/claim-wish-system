@@ -86,6 +86,8 @@ Db.prototype = {
 
     const claims = this._claims[name]
 
+
+    const equalConstraints = []
     const constantArgs = []
     const varArgs = []
     const matchingClaims = []
@@ -96,26 +98,42 @@ Db.prototype = {
     }
 
     // proccess arguments
-    for (let i = 0; i < args.length; i++) {
-      const value = args[i]
+    for (let ai = 0; ai < args.length; ai++) {
+      const value = args[ai]
 
       if (value instanceof Variable) {
         if (context[value.name]) { // resolve variables which are in context
-          args[i] = context[value.name]
-          constantArgs.push({index: i, value: context[value.name]})
+          args[ai] = context[value.name]
+          constantArgs.push({index: ai, value: context[value.name]})
 
         } else { // add other variables to varArgs
-          varArgs.push({index: i, name: value.name})
+
+          // add equal constraint if variable was used before
+          let prevReference = undefined
+          for (let vi = 0; vi < varArgs.length; vi++) {
+
+            const varArg = varArgs[vi]
+            if (varArg.name === value.name) {
+              equalConstraints.push([varArg.index, ai])
+            }
+          }
+
+
+          if (prevReference) {
+            equalConstraints.push([])
+          }
+
+          varArgs.push({index: ai, name: value.name})
         }
       }
 
       else if (value !== undefined) {
-        constantArgs.push({index: i, value})
+        constantArgs.push({index: ai, value})
       }
     }
 
-    // return all claims without filter if there are no constant arguments
-    if (constantArgs.length === 0) {
+    // return all claims without filter if there are no constant arguments and not equalConstraints
+    if (constantArgs.length === 0 && equalConstraints.length === 0) {
       return claimsToMatches(claims, varArgs, context)
     }
 
@@ -124,12 +142,26 @@ Db.prototype = {
       const compareClaim = claims[ci]
       let isMatch = true
 
+
+      // check if claim matches constant values
       for (let ai = 0; ai < constantArgs.length; ai++) {
         const {index, value} = constantArgs[ai]
 
         if (value !== compareClaim[index]) {
           isMatch = false
           break
+        }
+      }
+
+      // check if claim fulfills equal constraints
+      if (isMatch) {
+        for (let coi = 0; coi < equalConstraints.length; coi++) {
+          const [indexA, indexB] = equalConstraints[coi]
+
+          if (compareClaim[indexA] !== compareClaim[indexB]) {
+            isMatch = false
+            break
+          }
         }
       }
 

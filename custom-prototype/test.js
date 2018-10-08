@@ -1,18 +1,13 @@
 const Db = require('./db')
 const db = new Db()
 
-function getDB ()  {
-  for (let i = 0; i < 100; i++) {
-    db.addClaim(Db.claim('@ is a @', [i, 'paper']));
-    db.addClaim(Db.claim('@ has width @ and height @', [i, Math.random(), Math.random()]));
-  }
-}
-
 function assert (test, message) {
   if (!test) {
     console.error('failed:', message)
   }
 }
+
+// family example
 
 db.addClaim(Db.claim('@ is father of @', ['Abe', 'Homer']))
 db.addClaim(Db.claim('@ is father of @', ['Homer', 'Bart']))
@@ -27,7 +22,6 @@ db.addClaim(Db.claim('@ has gender @', ['Abe', 'male']))
 db.addClaim(Db.claim('@ likes person @', ['Homer', 'Homer']))
 db.addClaim(Db.claim('@ likes person @', ['Homer', 'Lisa']))
 
-// simple query
 
 const child = Db.variable('child')
 const simpleResult = db.query([
@@ -39,7 +33,6 @@ assert(JSON.stringify(simpleResult) === JSON.stringify([
   {child: 'Lisa'}
 ]), 'simple query should return children of homer')
 
-// join query
 
 const x = Db.variable('x')
 const y = Db.variable('y')
@@ -71,12 +64,6 @@ const multiVarResult = db.query([
   Db.claim('@ likes person @', [x, x])
 ])
 
-console.log(multiVarResult)
-
-
 assert(JSON.stringify(multiVarResult) === JSON.stringify([
   {x: 'Homer'}
 ]), 'multi var result')
-
-
-
